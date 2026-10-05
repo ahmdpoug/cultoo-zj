@@ -150,6 +150,34 @@ export interface LeaderboardEntry {
 
 export interface TxReceipt {
   hash: string
-  simulated: true
   at: number
+  explorerUrl: string | null
+}
+
+export interface GameState {
+  version: 2
+  mainCardId: string | null
+  cards: CultCard[]
+  wallet: { address: string | null }
+  economy: { balance: number; pendingCult: number; fragments: number; materials: number; seasonXp: number }
+  battles: BattleRecord[]
+  achievements: string[]
+  quests: Record<string, number>
+  claimedQuests: string[]
+  tournaments: string[]
+  guildId: string | null
+  listings: { id: string; cardId: string; price: number }[]
+  rewardedBattlesToday: number
+  activity: ActivityItem[]
+}
+
+export interface ChainInfo {
+  configured: boolean
+  chainId: number | null
+  chainName: string | null
+  tokenAddress: string | null
+  treasury: string | null
+  symbol: string
+  decimals: number
+  explorer: string | null
 }
