@@ -4,13 +4,16 @@ import type { ReactNode } from 'react'
 import { ScanLine, Sparkles } from 'lucide-react'
 import type { CultCard } from '@/lib/types'
 import { useGame, useMounted } from '@/hooks/use-game'
-import { CultLink } from '@/components/ui-kit/cult-button'
+import { CultButton, CultLink } from '@/components/ui-kit/cult-button'
+import { XLogo } from '@/components/layout/account-button'
+import { useCultAuth } from '@/lib/auth/cult-auth'
 import { EmptyState, Skeleton } from '@/components/ui-kit/primitives'
 
 /** Renders children only once the player has a card; otherwise shows onboarding. */
 export function PlayerGate({ children, message }: { children: (card: CultCard) => ReactNode; message?: string }) {
   const mounted = useMounted()
   const { mainCard } = useGame()
+  const auth = useCultAuth()
 
   if (!mounted) {
     return (
@@ -33,9 +36,15 @@ export function PlayerGate({ children, message }: { children: (card: CultCard) =
         description={message ?? 'Scan your CT identity or jump straight in with a random demo profile to unlock this area.'}
         action={
           <div className="flex flex-wrap justify-center gap-3">
-            <CultLink href="/scan" icon={<ScanLine className="size-4" />}>
-              Scan Your CT
-            </CultLink>
+            {auth.configured && !auth.authenticated ? (
+              <CultButton onClick={auth.login} icon={<XLogo className="size-3.5" />}>
+                Connect X
+              </CultButton>
+            ) : (
+              <CultLink href="/scan" icon={<ScanLine className="size-4" />}>
+                Scan Your CT
+              </CultLink>
+            )}
             <CultLink href="/scan?demo=1" variant="outline" icon={<Sparkles className="size-4" />}>
               Enter Demo
             </CultLink>

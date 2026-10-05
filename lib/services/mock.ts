@@ -12,7 +12,7 @@ import {
   updateCard,
   type GameState,
 } from '@/lib/store/game-store'
-import { InsufficientBalanceError, type CultServices } from './types'
+import { InsufficientBalanceError, type CultServices, type OnboardingService, type SocialService } from './types'
 
 const STARTER = { balance: 12_500, fragments: 240, materials: 36 }
 export const UPGRADE_COST = { cult: 400, materials: 6, xp: 1200 }
@@ -42,18 +42,45 @@ function starterInventory(owner: string): CultCard[] {
   })
 }
 
-export const mockServices: CultServices = {
-  social: {
-    async getProfile(handle) {
-      await delay(900)
-      return mockXProfile(handle)
-    },
-    shareUrl(text, url) {
-      const params = new URLSearchParams({ text })
-      if (url) params.set('url', url)
-      return `https://x.com/intent/post?${params.toString()}`
-    },
+const mockSocial: SocialService = {
+  async getProfile(handle) {
+    await delay(900)
+    return mockXProfile(handle)
   },
+  shareUrl(text, url) {
+    const params = new URLSearchParams({ text })
+    if (url) params.set('url', url)
+    return `https://x.com/intent/post?${params.toString()}`
+  },
+}
+
+export function createOnboarding(social: SocialService): OnboardingService {
+  return {
+    async createPlayer(handleRaw, opts) {
+      const handle = normalizeHandle(handleRaw) || `anon${Math.floor(Math.random() * 9999)}`
+      const profile = opts?.demo ? mockXProfile(handle, 4) : await social.getProfile(handle)
+      const s0 = gameStore.getSnapshot()
+      const owner = s0.cards.find((c) => c.id === s0.mainCardId)?.handle ?? profile.handle
+      const card: CultCard = { ...buildCard(profile, { owner }), id: randomId('card'), createdAt: Date.now() }
+      gameStore.set((s) => {
+        const isFirst = !s.mainCardId
+        let next: GameState = {
+          ...s,
+          mainCardId: isFirst ? card.id : s.mainCardId,
+          cards: isFirst ? [card, ...starterInventory(profile.handle)] : [card, ...s.cards],
+          economy: isFirst ? { ...s.economy, ...STARTER } : s.economy,
+        }
+        next = logActivity(next, 'scan', `Scanned @${profile.handle} — ${RARITY_META[card.rarity].label} pulled`)
+        next = progressQuest(unlock(next, 'first-scan'), 'scan')
+        return next
+      })
+      return { card, profile }
+    },
+  }
+}
+
+export const mockServices: CultServices = {
+  social: mockSocial,
 
   wallet: {
     async connect() {
@@ -79,28 +106,7 @@ export const mockServices: CultServices = {
     },
   },
 
-  onboarding: {
-    async createPlayer(handleRaw, opts) {
-      const handle = normalizeHandle(handleRaw) || `anon${Math.floor(Math.random() * 9999)}`
-      const profile = opts?.demo ? mockXProfile(handle, 4) : await mockServices.social.getProfile(handle)
-      const s0 = gameStore.getSnapshot()
-      const owner = s0.cards.find((c) => c.id === s0.mainCardId)?.handle ?? handle
-      const card: CultCard = { ...buildCard(profile, { owner }), id: randomId('card'), createdAt: Date.now() }
-      gameStore.set((s) => {
-        const isFirst = !s.mainCardId
-        let next: GameState = {
-          ...s,
-          mainCardId: isFirst ? card.id : s.mainCardId,
-          cards: isFirst ? [card, ...starterInventory(handle)] : [card, ...s.cards],
-          economy: isFirst ? { ...s.economy, ...STARTER } : s.economy,
-        }
-        next = logActivity(next, 'scan', `Scanned @${handle} — ${RARITY_META[card.rarity].label} pulled`)
-        next = progressQuest(unlock(next, 'first-scan'), 'scan')
-        return next
-      })
-      return { card, profile }
-    },
-  },
+  onboarding: createOnboarding(mockSocial),
 
   nft: {
     async mint(cardId) {

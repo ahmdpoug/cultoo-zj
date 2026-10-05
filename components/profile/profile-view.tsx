@@ -33,7 +33,7 @@ export function ProfileView({ card }: { card: CultCard }) {
       <Panel className="relative overflow-hidden p-6 sm:p-8">
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_100%_at_0%_0%,oklch(0.35_0.15_296/0.35),transparent_70%)]" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-          <CardAvatar handle={card.handle} className="w-24 sm:w-28" />
+          <CardAvatar handle={card.handle} src={card.avatarUrl} className="w-24 sm:w-28" />
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-3xl font-bold metal-text sm:text-4xl">{card.displayName}</h1>

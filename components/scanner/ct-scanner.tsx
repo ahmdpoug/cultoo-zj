@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, AtSign, RotateCcw, ScanLine, Share2, Sparkles, Swords } from 'lucide-react'
 import type { CultCard, XProfile } from '@/lib/types'
-import { services } from '@/lib/services'
+import { services, XLookupError } from '@/lib/services'
+import { useCultAuth } from '@/lib/auth/cult-auth'
+import { CardAvatar } from '@/components/cards/card-avatar'
+import { XLogo } from '@/components/layout/account-button'
 import { useGame } from '@/hooks/use-game'
 import { CultButton } from '@/components/ui-kit/cult-button'
 import { Panel, RarityBadge, SimulatedTag } from '@/components/ui-kit/primitives'
@@ -44,8 +47,16 @@ export function CTScanner({ autoDemo = false }: { autoDemo?: boolean }) {
     setPhase('scanning')
     setStep(0)
     const ticker = setInterval(() => setStep((s) => Math.min(s + 1, SCAN_STEPS.length - 1)), 480)
-    const [res] = await Promise.all([services.onboarding.createPlayer(clean, { demo }), new Promise((r) => setTimeout(r, 2500))])
-    clearInterval(ticker)
+    let res: Awaited<ReturnType<typeof services.onboarding.createPlayer>>
+    try {
+      ;[res] = await Promise.all([services.onboarding.createPlayer(clean, { demo }), new Promise((r) => setTimeout(r, 2500))])
+    } catch (err) {
+      setError(err instanceof XLookupError ? err.message : 'Could not reach X right now. Try again.')
+      setPhase('idle')
+      return
+    } finally {
+      clearInterval(ticker)
+    }
     setResult(res)
     setPhase('profile')
     setTimeout(() => setPhase('reveal'), 1800)
@@ -81,6 +92,7 @@ export function CTScanner({ autoDemo = false }: { autoDemo?: boolean }) {
         <Panel className="relative overflow-hidden p-6 sm:p-10">
           <div aria-hidden className="absolute inset-0 grid-bg opacity-50" />
           <form onSubmit={onSubmit} className="relative">
+            <ConnectedIdentity onScanSelf={(u) => void run(u)} />
             <label htmlFor="handle" className="text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
               X Username
             </label>
@@ -111,8 +123,8 @@ export function CTScanner({ autoDemo = false }: { autoDemo?: boolean }) {
                 Enter Demo
               </CultButton>
             </div>
-            <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-              <SimulatedTag /> Demo mode uses generated profile data. No X login required.
+            <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+              Signed-in scans pull live public metrics from X. Demo mode uses generated profile data and needs no login.
             </p>
           </form>
         </Panel>
@@ -178,8 +190,23 @@ export function CTScanner({ autoDemo = false }: { autoDemo?: boolean }) {
     <div className="grid items-center gap-10 lg:grid-cols-2">
       <div className="order-2 lg:order-1">
         <Panel className="p-6 sm:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">Profile analyzed</p>
-          <p className="mt-2 font-display text-3xl font-bold">@{profile.handle}</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">Profile analyzed</p>
+            {profile.source === 'x' ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-success">
+                <span aria-hidden className="size-1.5 rounded-full bg-success" /> Live X data
+              </span>
+            ) : (
+              <SimulatedTag />
+            )}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            {profile.avatarUrl && <CardAvatar handle={profile.handle} src={profile.avatarUrl} className="size-12" />}
+            <div className="min-w-0">
+              <p className="truncate font-display text-3xl font-bold">@{profile.handle}</p>
+              {profile.displayName !== profile.handle && <p className="truncate text-sm text-muted-foreground">{profile.displayName}</p>}
+            </div>
+          </div>
           <dl className="mt-6 divide-y divide-white/[0.06]">
             {profileRows.map(([k, v], i) => (
               <div key={k} className="flex items-center justify-between py-2.5 animate-slide-up" style={{ animationDelay: `${i * 120}ms` }}>
@@ -247,6 +274,41 @@ export function CTScanner({ autoDemo = false }: { autoDemo?: boolean }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ConnectedIdentity({ onScanSelf }: { onScanSelf: (username: string) => void }) {
+  const auth = useCultAuth()
+  if (!auth.configured || !auth.ready) return null
+
+  if (!auth.authenticated || !auth.x) {
+    return (
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <p className="font-display font-bold">Strike your real card</p>
+          <p className="text-sm text-muted-foreground">Connect X to mint a card from your actual account.</p>
+        </div>
+        <CultButton type="button" onClick={auth.authenticated ? auth.linkX : auth.login} icon={<XLogo className="size-3.5" />}>
+          {auth.authenticated ? 'Link X' : 'Connect X'}
+        </CultButton>
+      </div>
+    )
+  }
+
+  const x = auth.x
+  return (
+    <div className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <CardAvatar handle={x.username} src={x.avatarUrl} className="size-11 shrink-0" />
+        <div className="min-w-0">
+          <p className="truncate font-display font-bold">{x.name ?? x.username}</p>
+          <p className="truncate text-sm text-muted-foreground">Connected as @{x.username}</p>
+        </div>
+      </div>
+      <CultButton type="button" onClick={() => onScanSelf(x.username)} icon={<ScanLine className="size-4" />}>
+        Scan My X
+      </CultButton>
     </div>
   )
 }

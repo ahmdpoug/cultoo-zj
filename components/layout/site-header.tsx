@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, Wallet, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useGame } from '@/hooks/use-game'
-import { services } from '@/lib/services'
 import { num } from '@/lib/game/format'
+import { AccountButton } from './account-button'
 import { CultLogo, CultMark } from './cult-logo'
 import { PRIMARY_NAV, SECONDARY_NAV, isActive } from './nav-config'
 
@@ -42,7 +42,7 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-2">
           <BalanceChip />
-          <WalletButton />
+          <AccountButton />
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
@@ -99,37 +99,3 @@ function BalanceChip() {
   )
 }
 
-function WalletButton() {
-  const { state } = useGame()
-  const [busy, setBusy] = useState(false)
-  const address = state.wallet.address
-
-  async function toggle() {
-    setBusy(true)
-    try {
-      if (address) await services.wallet.disconnect()
-      else await services.wallet.connect()
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={busy}
-      title={address ? 'Demo wallet connected — click to disconnect' : 'Connect a simulated demo wallet'}
-      className={cn(
-        'flex h-10 items-center gap-2 rounded-xl px-3.5 font-display text-xs font-semibold uppercase tracking-[0.14em] transition-all disabled:opacity-60',
-        address
-          ? 'border border-primary/40 bg-primary/10 text-foreground'
-          : 'bg-primary text-primary-foreground hover:brightness-110',
-      )}
-    >
-      <Wallet className="size-4" aria-hidden />
-      <span className="hidden sm:inline">{busy ? 'Connecting' : address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Connect Wallet'}</span>
-      <span className="sm:hidden">{address ? address.slice(0, 6) : 'Connect'}</span>
-    </button>
-  )
-}

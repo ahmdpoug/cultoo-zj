@@ -35,13 +35,14 @@ export const INITIAL_STATE: GameState = {
 
 let state: GameState = INITIAL_STATE
 let hydrated = false
+let storageKey = STORAGE_KEY
 const listeners = new Set<() => void>()
 
 function load() {
   if (hydrated || typeof window === 'undefined') return
   hydrated = true
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = window.localStorage.getItem(storageKey)
     if (raw) {
       const parsed = JSON.parse(raw) as GameState
       if (parsed.version === 1) state = { ...INITIAL_STATE, ...parsed }
@@ -53,7 +54,7 @@ function load() {
 
 function persist() {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    window.localStorage.setItem(storageKey, JSON.stringify(state))
   } catch {
     /* storage full or disabled; demo continues in memory */
   }
@@ -80,6 +81,16 @@ export const gameStore = {
   reset() {
     state = INITIAL_STATE
     persist()
+    listeners.forEach((l) => l())
+  },
+  /** Switch to the save slot for a Privy user (or the guest slot when null). */
+  bindUser(userId: string | null) {
+    const key = userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY
+    if (key === storageKey && hydrated) return
+    storageKey = key
+    hydrated = false
+    state = INITIAL_STATE
+    load()
     listeners.forEach((l) => l())
   },
 }

@@ -83,6 +83,9 @@ export function buildCard(p: XProfile, opts: { owner?: string; rarity?: Rarity; 
     owner: opts.owner ?? p.handle,
     minted: false,
     createdAt: 0,
+    avatarUrl: p.avatarUrl ?? null,
+    verified: p.verified ?? false,
+    liveData: p.source === 'x',
   }
 }
 

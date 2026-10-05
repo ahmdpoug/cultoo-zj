@@ -3,6 +3,7 @@ import { Geist, Chakra_Petch } from 'next/font/google'
 import { SiteHeader } from '@/components/layout/site-header'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { SiteFooter } from '@/components/layout/site-footer'
+import { AuthProvider } from '@/components/providers/auth-provider'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' })
@@ -27,10 +28,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${geist.variable} ${chakra.variable} bg-background`}>
       <body className="min-h-dvh antialiased">
-        <SiteHeader />
-        <main className="mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 md:pt-12">{children}</main>
-        <SiteFooter />
-        <MobileNav />
+        <AuthProvider>
+          <SiteHeader />
+          <main className="mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 md:pt-12">{children}</main>
+          <SiteFooter />
+          <MobileNav />
+        </AuthProvider>
       </body>
     </html>
   )

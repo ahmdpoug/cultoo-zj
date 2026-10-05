@@ -66,7 +66,7 @@ export function Leaderboard() {
       {mounted && mainCard && (
         <div className="mt-6 flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3">
           <span className="font-display text-xl font-bold tabular-nums">#{num(seasonRank(totalPower))}</span>
-          <CardAvatar handle={mainCard.handle} className="w-9" />
+          <CardAvatar handle={mainCard.handle} src={mainCard.avatarUrl} className="w-9" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">@{mainCard.handle} <span className="text-xs text-primary">(You)</span></p>
             <p className="text-xs text-muted-foreground">Global season rank</p>

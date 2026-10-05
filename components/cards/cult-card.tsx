@@ -87,7 +87,7 @@ export function CultCardView({ card, size = 'md', tilt = true, flipped = false, 
             <div className="relative mt-[3cqw] aspect-[1/0.8] overflow-hidden rounded-[3cqw] border rarity-border bg-black/40">
               <div aria-hidden className="absolute inset-0 grid-bg opacity-60" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <CardAvatar handle={card.handle} className="w-[40cqw]" />
+                <CardAvatar handle={card.handle} src={card.avatarUrl} className="w-[40cqw]" />
               </div>
               <div className="absolute right-[3cqw] top-[3cqw] flex flex-col items-end rounded-[2cqw] border rarity-border bg-black/60 px-[2.4cqw] py-[1.2cqw] backdrop-blur">
                 <span className="text-[length:2.4cqw] font-semibold tracking-[0.2em] text-muted-foreground">CT SCORE</span>

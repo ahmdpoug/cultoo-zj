@@ -22,6 +22,11 @@ export interface XProfile {
   influence: number
   alpha: number
   archetype: Archetype
+  avatarUrl?: string | null
+  verified?: boolean
+  xId?: string
+  /** `x` = live X API metrics, `generated` = deterministic estimate. */
+  source?: 'x' | 'generated'
 }
 
 export interface CultCard {
@@ -44,6 +49,9 @@ export interface CultCard {
   owner: string
   minted: boolean
   createdAt: number
+  avatarUrl?: string | null
+  verified?: boolean
+  liveData?: boolean
 }
 
 export interface BattleRound {
