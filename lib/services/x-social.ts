@@ -1,6 +1,7 @@
 import type { XProfile } from '@/lib/types'
 import { authBridge } from '@/lib/auth/bridge'
-import { mockXProfile, normalizeHandle } from '@/lib/game/scoring'
+import { buildCard, mockXProfile, normalizeHandle } from '@/lib/game/scoring'
+import { gameStore } from '@/lib/store/game-store'
 import type { SocialService } from './types'
 
 export class XLookupError extends Error {}
@@ -39,4 +40,39 @@ export const xSocial: SocialService = {
     if (url) params.set('url', url)
     return `https://x.com/intent/post?${params.toString()}`
   },
+}
+
+/**
+ * Refreshes the player's main card from their connected X account so followers,
+ * stats, CT score and rarity reflect live data. Keeps progression (id, XP, record, mint).
+ */
+export async function syncMainCardFromX(username: string): Promise<boolean> {
+  const s = gameStore.getSnapshot()
+  const main = s.cards.find((c) => c.id === s.mainCardId)
+  if (!main || main.handle.toLowerCase() !== username.toLowerCase()) return false
+
+  const profile = await xSocial.getProfile(username).catch(() => null)
+  if (!profile || profile.source !== 'x') return false
+
+  const fresh = buildCard(profile, { owner: main.owner, id: main.id })
+  gameStore.set((st) => ({
+    ...st,
+    cards: st.cards.map((c) =>
+      c.id === main.id
+        ? {
+            ...fresh,
+            number: c.number,
+            xp: c.xp,
+            wins: c.wins,
+            losses: c.losses,
+            edition: c.edition,
+            season: c.season,
+            minted: c.minted,
+            createdAt: c.createdAt,
+            level: Math.max(c.level, fresh.level),
+          }
+        : c,
+    ),
+  }))
+  return true
 }

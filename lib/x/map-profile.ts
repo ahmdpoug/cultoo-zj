@@ -15,7 +15,7 @@ export interface XApiUser {
     followers_count: number
     following_count: number
     tweet_count: number
-    listed_count: number
+    listed_count?: number
     like_count?: number
   }
 }
@@ -47,9 +47,11 @@ export function mapXUser(u: XApiUser): XProfile {
   const ctActivity = clamp(40 + Math.log10(postsPerDay * 100 + 1) * 18)
   const influence = clamp(38 + Math.log10(m.followers_count + 1) * 10 + (u.verified ? 3 : 0))
   const likesPerPost = (m.like_count ?? 0) / Math.max(1, m.tweet_count)
-  const engagement = clamp(44 + Math.log10(m.listed_count + 1) * 11 + Math.min(8, likesPerPost * 2) + rng.int(0, 4))
+  // List membership isn't exposed by every source; ~1 list per 150 followers is a typical ratio.
+  const listed = m.listed_count ?? Math.round(m.followers_count / 150)
+  const engagement = clamp(44 + Math.log10(listed + 1) * 11 + Math.min(8, likesPerPost * 2) + rng.int(0, 4))
   const ctHits = bio.match(CT_SIGNAL)?.length ?? 0
-  const alpha = clamp(48 + ctHits * 5 + Math.log10(m.listed_count + 1) * 5 + rng.int(0, 12))
+  const alpha = clamp(48 + ctHits * 5 + Math.log10(listed + 1) * 5 + rng.int(0, 12))
 
   const keyword = ARCHETYPE_KEYWORDS.find(([, re]) => re.test(bio))?.[0]
   const archetype: Archetype = accountAgeYears >= 11 && !keyword ? 'og' : (keyword ?? rng.pick(['trader', 'builder', 'meme', 'alpha', 'og', 'researcher'] as const))

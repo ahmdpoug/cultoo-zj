@@ -5,6 +5,7 @@ import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth'
 import { CultAuthContext, GUEST_AUTH, type CultAuth } from '@/lib/auth/cult-auth'
 import { fullSizeAvatar, registerAuthBridge, type XIdentity } from '@/lib/auth/bridge'
 import { gameStore } from '@/lib/store/game-store'
+import { syncMainCardFromX } from '@/lib/services/x-social'
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID
 
@@ -58,6 +59,12 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (ready) gameStore.bindUser(privyId)
   }, [ready, privyId])
+
+  const xUsername = authenticated ? x?.username : undefined
+  useEffect(() => {
+    if (!ready || !xUsername) return
+    void syncMainCardFromX(xUsername)
+  }, [ready, xUsername, privyId])
 
   useEffect(() => {
     if (!ready) return
